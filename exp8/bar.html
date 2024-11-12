@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forest Cover Bar Chart</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+    <h1>Forest Cover by Country</h1>
+    <div id="chart"></div>
+
+    <script>
+        // Set dimensions for the SVG
+        const margin = { top: 20, right: 30, bottom: 40, left: 90 },
+              width = 800 - margin.left - margin.right,
+              height = 500 - margin.top - margin.bottom;
+
+        // Append an SVG element to the chart div
+        const svg = d3.select("#chart")
+                      .append("svg")
+                      .attr("width", width + margin.left + margin.right)
+                      .attr("height", height + margin.top + margin.bottom)
+                      .append("g")
+                      .attr("transform", `translate(${margin.left},${margin.top})`);
+
+        // Load the CSV data
+        d3.csv("environment_forest_cover_data.csv").then(data => {
+            // Filter data for a specific year (e.g., 2010)
+            const selectedYear = 2010;
+            const filteredData = data.filter(d => +d.Year === selectedYear);
+
+            // Convert Forest_Cover to a numeric value
+            filteredData.forEach(d => {
+                d["Forest_Cover (sq km)"] = +d["Forest_Cover (sq km)"];
+            });
+
+            // Create X and Y scales
+            const x = d3.scaleLinear()
+                        .domain([0, d3.max(filteredData, d => d["Forest_Cover (sq km)"])])
+                        .range([0, width]);
+
+            const y = d3.scaleBand()
+                        .domain(filteredData.map(d => d.Country))
+                        .range([0, height])
+                        .padding(0.1);
+
+            // Add X-axis to the SVG
+            svg.append("g")
+               .attr("transform", `translate(0,${height})`)
+               .call(d3.axisBottom(x))
+               .selectAll("text")
+               .style("text-anchor", "end");
+
+            // Add Y-axis to the SVG
+            svg.append("g")
+               .call(d3.axisLeft(y));
+
+            // Create bars for each country
+            svg.selectAll("rect")
+               .data(filteredData)
+               .enter()
+               .append("rect")
+               .attr("x", 0)
+               .attr("y", d => y(d.Country))
+               .attr("width", d => x(d["Forest_Cover (sq km)"]))
+               .attr("height", y.bandwidth())
+               .attr("fill", "#69b3a2");
+
+            // Add labels for each bar
+            svg.selectAll("text.label")
+               .data(filteredData)
+               .enter()
+               .append("text")
+               .attr("class", "label")
+               .attr("x", d => x(d["Forest_Cover (sq km)"]) - 30)
+               .attr("y", d => y(d.Country) + y.bandwidth() / 2)
+               .attr("dy", ".35em")
+               .attr("text-anchor", "end")
+               .attr("fill", "white")
+               .text(d => d["Forest_Cover (sq km)"]);
+        }).catch(error => {
+            console.error("Error loading the CSV file:", error);
+        });
+    </script>
+</body>
+</html>

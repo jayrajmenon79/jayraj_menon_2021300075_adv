@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deforestation Rate Heatmap</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        .cell {
+            stroke: #ffffff;
+            stroke-width: 1px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Deforestation Rate Heatmap</h1>
+    <div id="chart"></div>
+
+    <script>
+        // Set dimensions and margins for the heatmap
+        const margin = { top: 50, right: 30, bottom: 50, left: 100 },
+              width = 800 - margin.left - margin.right,
+              height = 500 - margin.top - margin.bottom;
+
+        // Create an SVG element
+        const svg = d3.select("#chart")
+                      .append("svg")
+                      .attr("width", width + margin.left + margin.right)
+                      .attr("height", height + margin.top + margin.bottom)
+                      .append("g")
+                      .attr("transform", `translate(${margin.left},${margin.top})`);
+
+        // Load the CSV data
+        d3.csv("environment_forest_cover_data.csv").then(data => {
+            // Parse data values
+            data.forEach(d => {
+                d["Deforestation_Rate (%)"] = +d["Deforestation_Rate (%)"];
+                d.Year = +d.Year;
+            });
+
+            // Get unique countries and years
+            const countries = Array.from(new Set(data.map(d => d.Country)));
+            const years = Array.from(new Set(data.map(d => d.Year)));
+
+            // Set scales
+            const x = d3.scaleBand()
+                        .domain(years)
+                        .range([0, width])
+                        .padding(0.05);
+
+            const y = d3.scaleBand()
+                        .domain(countries)
+                        .range([height, 0])
+                        .padding(0.05);
+
+            const colorScale = d3.scaleSequential(d3.interpolateReds)
+                                 .domain([0, d3.max(data, d => d["Deforestation_Rate (%)"])]);
+
+            // Add X-axis
+            svg.append("g")
+               .attr("transform", `translate(0,${height})`)
+               .call(d3.axisBottom(x).tickFormat(d3.format("d")))
+               .selectAll("text")
+               .attr("dy", "0.35em")
+               .attr("text-anchor", "middle");
+
+            // Add Y-axis
+            svg.append("g")
+               .call(d3.axisLeft(y));
+
+            // Add cells for the heatmap
+            svg.selectAll()
+               .data(data, d => `${d.Country}:${d.Year}`)
+               .enter()
+               .append("rect")
+               .attr("x", d => x(d.Year))
+               .attr("y", d => y(d.Country))
+               .attr("width", x.bandwidth())
+               .attr("height", y.bandwidth())
+               .attr("class", "cell")
+               .style("fill", d => colorScale(d["Deforestation_Rate (%)"]))
+               .append("title")  // Tooltip for each cell
+               .text(d => `Year: ${d.Year}\nCountry: ${d.Country}\nDeforestation Rate: ${d["Deforestation_Rate (%)"]}%`);
+
+        }).catch(error => {
+            console.error("Error loading the CSV file:", error);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deforestation Rate vs CO2 Emissions Scatter Plot</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+    <h1>Deforestation Rate vs CO2 Emissions</h1>
+    <div id="chart"></div>
+
+    <script>
+        // Set up the SVG dimensions and margins
+        const margin = { top: 20, right: 30, bottom: 50, left: 60 },
+              width = 800 - margin.left - margin.right,
+              height = 500 - margin.top - margin.bottom;
+
+        // Append an SVG element to the chart div
+        const svg = d3.select("#chart")
+                      .append("svg")
+                      .attr("width", width + margin.left + margin.right)
+                      .attr("height", height + margin.top + margin.bottom)
+                      .append("g")
+                      .attr("transform", `translate(${margin.left},${margin.top})`);
+
+        // Load the CSV data
+        d3.csv("environment_forest_cover_data.csv").then(data => {
+            // Filter data for a specific year (e.g., 2010)
+            const selectedYear = 2010;
+            const filteredData = data.filter(d => +d.Year === selectedYear);
+
+            // Convert necessary columns to numbers
+            filteredData.forEach(d => {
+                d["Deforestation_Rate (%)"] = +d["Deforestation_Rate (%)"];
+                d["CO2_Emissions (metric tons)"] = +d["CO2_Emissions (metric tons)"];
+                d.Population = +d.Population;
+            });
+
+            // Create X and Y scales
+            const x = d3.scaleLinear()
+                        .domain([0, d3.max(filteredData, d => d["Deforestation_Rate (%)"])])
+                        .range([0, width])
+                        .nice();
+
+            const y = d3.scaleLinear()
+                        .domain([0, d3.max(filteredData, d => d["CO2_Emissions (metric tons)"])])
+                        .range([height, 0])
+                        .nice();
+
+            // Create scale for circle radius based on population
+            const radius = d3.scaleSqrt()
+                             .domain([0, d3.max(filteredData, d => d.Population)])
+                             .range([2, 15]);
+
+            // Add X-axis
+            svg.append("g")
+               .attr("transform", `translate(0,${height})`)
+               .call(d3.axisBottom(x))
+               .append("text")
+               .attr("x", width / 2)
+               .attr("y", 40)
+               .attr("fill", "black")
+               .text("Deforestation Rate (%)");
+
+            // Add Y-axis
+            svg.append("g")
+               .call(d3.axisLeft(y))
+               .append("text")
+               .attr("x", -height / 2)
+               .attr("y", -40)
+               .attr("fill", "black")
+               .attr("text-anchor", "middle")
+               .attr("transform", "rotate(-90)")
+               .text("CO2 Emissions (metric tons)");
+
+            // Create circles for each data point
+            svg.selectAll("circle")
+               .data(filteredData)
+               .enter()
+               .append("circle")
+               .attr("cx", d => x(d["Deforestation_Rate (%)"]))
+               .attr("cy", d => y(d["CO2_Emissions (metric tons)"]))
+               .attr("r", d => radius(d.Population))
+               .attr("fill", "steelblue")
+               .attr("opacity", 0.7);
+
+            // Add labels for each point (country names)
+            svg.selectAll("text.label")
+               .data(filteredData)
+               .enter()
+               .append("text")
+               .attr("class", "label")
+               .attr("x", d => x(d["Deforestation_Rate (%)"]))
+               .attr("y", d => y(d["CO2_Emissions (metric tons)"]) - 10)
+               .attr("text-anchor", "middle")
+               .attr("font-size", "10px")
+               .attr("fill", "black")
+               .text(d => d.Country);
+
+        }).catch(error => {
+            console.error("Error loading the CSV file:", error);
+        });
+    </script>
+</body>
+</html>

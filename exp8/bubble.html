@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CO2 Emissions vs Forest Cover (Bubble Chart)</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+    <h1>CO2 Emissions vs Forest Cover (Bubble Chart)</h1>
+    <div id="chart"></div>
+
+    <script>
+        // Set dimensions and margins for the SVG
+        const margin = { top: 20, right: 30, bottom: 50, left: 60 },
+              width = 800 - margin.left - margin.right,
+              height = 500 - margin.top - margin.bottom;
+
+        // Append an SVG element to the chart div
+        const svg = d3.select("#chart")
+                      .append("svg")
+                      .attr("width", width + margin.left + margin.right)
+                      .attr("height", height + margin.top + margin.bottom)
+                      .append("g")
+                      .attr("transform", `translate(${margin.left},${margin.top})`);
+
+        // Load the CSV data
+        d3.csv("environment_forest_cover_data.csv").then(data => {
+            // Convert necessary columns to numbers
+            data.forEach(d => {
+                d["CO2_Emissions (metric tons)"] = +d["CO2_Emissions (metric tons)"];
+                d["Forest_Cover (sq km)"] = +d["Forest_Cover (sq km)"];
+            });
+
+            // Create X and Y scales
+            const x = d3.scaleLinear()
+                        .domain([0, d3.max(data, d => d["CO2_Emissions (metric tons)"])])
+                        .range([0, width])
+                        .nice();
+
+            const y = d3.scaleLinear()
+                        .domain([0, d3.max(data, d => d["Forest_Cover (sq km)"])])
+                        .range([height, 0])
+                        .nice();
+
+            // Create scale for bubble size based on Forest Cover
+            const radius = d3.scaleSqrt()
+                             .domain([0, d3.max(data, d => d["Forest_Cover (sq km)"])])
+                             .range([5, 30]);
+
+            // Create color scale based on CO2 Emissions
+            const color = d3.scaleSequential(d3.interpolateYlOrRd)
+                            .domain([0, d3.max(data, d => d["CO2_Emissions (metric tons)"])]);
+
+            // Add X-axis
+            svg.append("g")
+               .attr("transform", `translate(0,${height})`)
+               .call(d3.axisBottom(x))
+               .append("text")
+               .attr("x", width / 2)
+               .attr("y", 40)
+               .attr("fill", "black")
+               .text("CO2 Emissions (metric tons)");
+
+            // Add Y-axis
+            svg.append("g")
+               .call(d3.axisLeft(y))
+               .append("text")
+               .attr("x", -height / 2)
+               .attr("y", -40)
+               .attr("fill", "black")
+               .attr("text-anchor", "middle")
+               .attr("transform", "rotate(-90)")
+               .text("Forest Cover (sq km)");
+
+            // Add bubbles
+            svg.selectAll("circle")
+               .data(data)
+               .enter()
+               .append("circle")
+               .attr("cx", d => x(d["CO2_Emissions (metric tons)"]))
+               .attr("cy", d => y(d["Forest_Cover (sq km)"]))
+               .attr("r", d => radius(d["Forest_Cover (sq km)"]))
+               .attr("fill", d => color(d["CO2_Emissions (metric tons)"]))
+               .attr("opacity", 0.8);
+
+            // Add labels for each bubble (country names)
+            svg.selectAll("text.label")
+               .data(data)
+               .enter()
+               .append("text")
+               .attr("x", d => x(d["CO2_Emissions (metric tons)"]))
+               .attr("y", d => y(d["Forest_Cover (sq km)"]))
+               .attr("text-anchor", "middle")
+               .attr("font-size", "10px")
+               .attr("fill", "black")
+               .text(d => d.Country);
+
+        }).catch(error => {
+            console.error("Error loading the CSV file:", error);
+        });
+    </script>
+</body>
+</html>

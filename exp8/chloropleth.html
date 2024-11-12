@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deforestation Rate Choropleth Map</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://unpkg.com/topojson@3.0.2/dist/topojson.min.js"></script>
+    <style>
+        .country {
+            stroke: #fff;
+            stroke-width: 0.5;
+        }
+    </style>
+</head>
+<body>
+    <h1>Deforestation Rate Choropleth Map</h1>
+    <div id="chart"></div>
+
+    <script>
+        const width = 960;
+        const height = 600;
+
+        // Create SVG element
+        const svg = d3.select("#chart")
+                      .append("svg")
+                      .attr("width", width)
+                      .attr("height", height);
+
+        // Create a projection and path generator
+        const projection = d3.geoMercator()
+                             .scale(130)
+                             .translate([width / 2, height / 1.5]);
+
+        const path = d3.geoPath().projection(projection);
+
+        // Color scale for the deforestation rate
+        const colorScale = d3.scaleSequential(d3.interpolateReds)
+                             .domain([0, 100]);  // Defining the range (min to max deforestation rate)
+
+        // Load GeoJSON for world map and CSV data
+        Promise.all([
+            d3.json("https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson"),
+            d3.csv("environment_forest_cover_data.csv")
+        ]).then(([worldData, deforestationData]) => {
+            // Create a mapping of country names to deforestation rates
+            const deforestationMap = {};
+            deforestationData.forEach(d => {
+                deforestationMap[d.Country] = d["Deforestation_Rate (%)"];
+            });
+
+            // Draw the map with choropleth color scale
+            svg.selectAll(".country")
+               .data(worldData.features)
+               .enter()
+               .append("path")
+               .attr("class", "country")
+               .attr("d", path)
+               .attr("fill", function(d) {
+                   const deforestationRate = deforestationMap[d.properties.name];
+                   return deforestationRate ? colorScale(deforestationRate) : "#ccc"; // If no data, color gray
+               })
+               .on("mouseover", function(event, d) {
+                   const deforestationRate = deforestationMap[d.properties.name];
+                   if (deforestationRate) {
+                       d3.select(this).attr("stroke", "#000").attr("stroke-width", 2);
+                       tooltip.style("visibility", "visible")
+                              .text(`${d.properties.name}: ${deforestationRate}% Deforestation`);
+                   }
+               })
+               .on("mouseout", function(event, d) {
+                   d3.select(this).attr("stroke", "#fff").attr("stroke-width", 0.5);
+                   tooltip.style("visibility", "hidden");
+               });
+
+            // Add a tooltip for mouseover interactions
+            const tooltip = d3.select("body")
+                              .append("div")
+                              .attr("class", "tooltip")
+                              .style("position", "absolute")
+                              .style("visibility", "hidden")
+                              .style("background-color", "white")
+                              .style("padding", "5px")
+                              .style("border-radius", "5px")
+                              .style("box-shadow", "0 0 10px rgba(0, 0, 0, 0.5)");
+
+        }).catch(error => {
+            console.error("Error loading data:", error);
+        });
+    </script>
+</body>
+</html>
