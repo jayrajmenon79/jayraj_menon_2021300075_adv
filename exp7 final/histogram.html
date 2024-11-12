@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Credit Score Distribution - Histogram</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        /* Style for the histogram */
+        .bar {
+            fill: steelblue;
+        }
+        .bar:hover {
+            fill: darkorange;
+        }
+        .axis-label {
+            font-size: 14px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Distribution of Credit Scores</h2>
+<div id="histogram"></div>
+
+<script>
+    // Set up dimensions
+    const width = 600;
+    const height = 400;
+    const margin = { top: 40, right: 20, bottom: 50, left: 70 };
+
+    // Create SVG container
+    const svg = d3.select("#histogram")
+        .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+    // Load the CSV data
+    d3.csv("finance_banking_dataset_50rows.csv").then(data => {
+        // Convert Credit_Score to numerical values
+        data.forEach(d => {
+            d.Credit_Score = +d.Credit_Score;
+        });
+
+        // Set up the x-scale for Credit_Score
+        const x = d3.scaleLinear()
+            .domain([d3.min(data, d => d.Credit_Score), d3.max(data, d => d.Credit_Score)])
+            .nice()
+            .range([0, width]);
+
+        // Set up the histogram generator
+        const histogram = d3.histogram()
+            .value(d => d.Credit_Score)
+            .domain(x.domain())
+            .thresholds(x.ticks(10)); // Define the number of bins
+
+        // Generate bins for the histogram
+        const bins = histogram(data);
+
+        // Set up the y-scale based on bin frequency
+        const y = d3.scaleLinear()
+            .domain([0, d3.max(bins, d => d.length)])
+            .range([height, 0]);
+
+        // Add X axis
+        svg.append("g")
+            .attr("transform", `translate(0,${height})`)
+            .call(d3.axisBottom(x));
+
+        // Add Y axis
+        svg.append("g")
+            .call(d3.axisLeft(y));
+
+        // Draw bars for the histogram
+        svg.selectAll(".bar")
+            .data(bins)
+            .enter()
+            .append("rect")
+            .attr("class", "bar")
+            .attr("x", d => x(d.x0) + 1)
+            .attr("y", d => y(d.length))
+            .attr("width", d => x(d.x1) - x(d.x0) - 1)
+            .attr("height", d => height - y(d.length));
+
+        // X-axis label
+        svg.append("text")
+            .attr("class", "axis-label")
+            .attr("x", width / 2)
+            .attr("y", height + margin.bottom - 10)
+            .style("text-anchor", "middle")
+            .text("Credit Score");
+
+        // Y-axis label
+        svg.append("text")
+            .attr("class", "axis-label")
+            .attr("x", -height / 2)
+            .attr("y", -margin.left + 20)
+            .attr("transform", "rotate(-90)")
+            .style("text-anchor", "middle")
+            .text("Number of Customers");
+    }).catch(error => {
+        console.error("Error loading the CSV data: ", error);
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loan Amount by Policy Type - Bar Chart</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        /* Style for the chart */
+        .bar {
+            fill: steelblue;
+        }
+        .bar:hover {
+            fill: darkorange;
+        }
+        .axis-label {
+            font-size: 14px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Average Loan Amount by Policy Type</h2>
+<div id="chart"></div>
+
+<script>
+    // Set up dimensions
+    const width = 600;
+    const height = 400;
+    const margin = { top: 40, right: 20, bottom: 50, left: 70 };
+
+    // Create SVG container
+    const svg = d3.select("#chart")
+        .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+    // Load the CSV data
+    d3.csv("finance_banking_dataset_50rows.csv").then(data => {
+        // Convert numerical values from strings to numbers
+        data.forEach(d => {
+            d.Loan_Amount = +d.Loan_Amount;
+        });
+
+        // Group data by Policy_Type and calculate average Loan_Amount
+        const avgLoanAmountByPolicy = d3.rollups(
+            data,
+            v => d3.mean(v, d => d.Loan_Amount),
+            d => d.Policy_Type
+        ).map(([Policy_Type, Loan_Amount]) => ({ Policy_Type, Loan_Amount }));
+
+        // Set up scales
+        const x = d3.scaleBand()
+            .domain(avgLoanAmountByPolicy.map(d => d.Policy_Type))
+            .range([0, width])
+            .padding(0.2);
+
+        const y = d3.scaleLinear()
+            .domain([0, d3.max(avgLoanAmountByPolicy, d => d.Loan_Amount)])
+            .nice()
+            .range([height, 0]);
+
+        // Add X axis
+        svg.append("g")
+            .attr("transform", `translate(0,${height})`)
+            .call(d3.axisBottom(x))
+            .selectAll("text")
+            .attr("dy", "1em")
+            .attr("transform", "rotate(-15)")
+            .style("text-anchor", "end");
+
+        // Add Y axis
+        svg.append("g")
+            .call(d3.axisLeft(y));
+
+        // Add bars
+        svg.selectAll(".bar")
+            .data(avgLoanAmountByPolicy)
+            .enter()
+            .append("rect")
+            .attr("class", "bar")
+            .attr("x", d => x(d.Policy_Type))
+            .attr("y", d => y(d.Loan_Amount))
+            .attr("width", x.bandwidth())
+            .attr("height", d => height - y(d.Loan_Amount));
+
+        // X-axis label
+        svg.append("text")
+            .attr("class", "axis-label")
+            .attr("x", width / 2)
+            .attr("y", height + margin.bottom - 10)
+            .style("text-anchor", "middle")
+            .text("Policy Type");
+
+        // Y-axis label
+        svg.append("text")
+            .attr("class", "axis-label")
+            .attr("x", -height / 2)
+            .attr("y", -margin.left + 20)
+            .attr("transform", "rotate(-90)")
+            .style("text-anchor", "middle")
+            .text("Average Loan Amount (USD)");
+    }).catch(error => {
+        console.error("Error loading the CSV data: ", error);
+    });
+</script>
+
+</body>
+</html>

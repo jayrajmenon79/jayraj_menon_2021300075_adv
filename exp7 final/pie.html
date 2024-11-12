@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Policy Type Distribution - Pie Chart</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        /* Styling for chart elements */
+        .pie-chart text {
+            font-size: 14px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h2>Distribution of Policy Types</h2>
+    <div id="pie-chart"></div>
+
+    <script>
+        // Set up dimensions and radius for the pie chart
+        const width = 500;
+        const height = 500;
+        const radius = Math.min(width, height) / 2;
+
+        // Create SVG container
+        const svg = d3.select("#pie-chart")
+            .append("svg")
+            .attr("width", width)
+            .attr("height", height)
+            .append("g")
+            .attr("transform", `translate(${width / 2}, ${height / 2})`);
+
+        // Set up color scale
+        const color = d3.scaleOrdinal()
+            .domain(["Health", "Auto", "Life", "Home"])
+            .range(["#4e79a7", "#f28e2b", "#e15759", "#76b7b2"]);
+
+        // Load the CSV data
+        d3.csv("finance_banking_dataset_50rows.csv").then(data => {
+            // Group data by Policy_Type and count occurrences
+            const policyData = d3.rollups(
+                data,
+                v => v.length,
+                d => d.Policy_Type
+            ).map(([Policy_Type, Count]) => ({ Policy_Type, Count }));
+
+            // Create pie layout
+            const pie = d3.pie()
+                .value(d => d.Count);
+
+            // Define arc generator
+            const arc = d3.arc()
+                .innerRadius(0)
+                .outerRadius(radius);
+
+            // Generate pie chart
+            svg.selectAll("path")
+                .data(pie(policyData))
+                .enter()
+                .append("path")
+                .attr("d", arc)
+                .attr("fill", d => color(d.data.Policy_Type))
+                .attr("stroke", "white")
+                .style("stroke-width", "2px");
+
+            // Add labels
+            svg.selectAll("text")
+                .data(pie(policyData))
+                .enter()
+                .append("text")
+                .text(d => `${d.data.Policy_Type}: ${d.data.Count}`)
+                .attr("transform", d => `translate(${arc.centroid(d)})`)
+                .style("text-anchor", "middle")
+                .style("font-size", "12px")
+                .style("fill", "white");
+        }).catch(error => {
+            console.error("Error loading the CSV data: ", error);
+        });
+    </script>
+
+</body>
+
+</html>

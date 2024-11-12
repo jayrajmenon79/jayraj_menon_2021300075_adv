@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bubble Plot: Credit Score vs Loan Amount</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        .bubble {
+            opacity: 0.6;
+            stroke: black;
+            stroke-width: 1px;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Bubble Plot: Credit Score vs Loan Amount</h2>
+<div id="bubbleplot"></div>
+
+<script>
+    const width = 800;
+    const height = 500;
+    const margin = { top: 40, right: 30, bottom: 50, left: 70 };
+
+    const svg = d3.select("#bubbleplot")
+        .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+    d3.csv("finance_banking_dataset_50rows.csv").then(data => {
+        // Parse numerical values
+        data.forEach(d => {
+            d.Credit_Score = +d.Credit_Score;
+            d.Loan_Amount = +d.Loan_Amount;
+            d.Income = +d.Income;
+        });
+
+        // Set scales
+        const x = d3.scaleLinear()
+            .domain([d3.min(data, d => d.Credit_Score) * 0.9, d3.max(data, d => d.Credit_Score) * 1.1])
+            .range([0, width]);
+
+        const y = d3.scaleLinear()
+            .domain([d3.min(data, d => d.Loan_Amount) * 0.9, d3.max(data, d => d.Loan_Amount) * 1.1])
+            .range([height, 0]);
+
+        const r = d3.scaleSqrt()
+            .domain([d3.min(data, d => d.Income), d3.max(data, d => d.Income)])
+            .range([5, 20]);
+
+        // Add X axis
+        svg.append("g")
+            .attr("transform", `translate(0,${height})`)
+            .call(d3.axisBottom(x));
+
+        // Add Y axis
+        svg.append("g")
+            .call(d3.axisLeft(y));
+
+        // Add bubbles
+        svg.selectAll("circle")
+            .data(data)
+            .enter()
+            .append("circle")
+            .attr("class", "bubble")
+            .attr("cx", d => x(d.Credit_Score))
+            .attr("cy", d => y(d.Loan_Amount))
+            .attr("r", d => r(d.Income))
+            .attr("fill", "steelblue");
+
+        // Add X axis label
+        svg.append("text")
+            .attr("class", "axis-label")
+            .attr("x", width / 2)
+            .attr("y", height + margin.bottom - 10)
+            .style("text-anchor", "middle")
+            .text("Credit Score");
+
+        // Add Y axis label
+        svg.append("text")
+            .attr("class", "axis-label")
+            .attr("x", -height / 2)
+            .attr("y", -margin.left + 15)
+            .attr("transform", "rotate(-90)")
+            .style("text-anchor", "middle")
+            .text("Loan Amount (USD)");
+
+        // Add title
+        svg.append("text")
+            .attr("x", width / 2)
+            .attr("y", -10)
+            .attr("text-anchor", "middle")
+            .style("font-size", "16px")
+            .style("font-weight", "bold")
+            .text("Credit Score vs Loan Amount with Bubble Size by Income");
+
+    }).catch(error => {
+        console.error("Error loading the CSV data: ", error);
+    });
+</script>
+
+</body>
+</html>

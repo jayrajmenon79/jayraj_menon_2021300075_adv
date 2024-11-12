@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Credit Score vs. Loan Amount - Scatter Plot</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        /* Style for the scatter plot */
+        .dot {
+            fill: steelblue;
+            stroke: white;
+            stroke-width: 1px;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Relationship between Credit Score and Loan Amount</h2>
+<div id="scatterplot"></div>
+
+<script>
+    // Set up dimensions and margins
+    const width = 600;
+    const height = 400;
+    const margin = { top: 40, right: 20, bottom: 50, left: 70 };
+
+    // Create SVG container
+    const svg = d3.select("#scatterplot")
+        .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+    // Load the CSV data
+    d3.csv("finance_banking_dataset_50rows.csv").then(data => {
+        // Convert Credit_Score and Loan_Amount to numerical values
+        data.forEach(d => {
+            d.Credit_Score = +d.Credit_Score;
+            d.Loan_Amount = +d.Loan_Amount;
+        });
+
+        // Set up x and y scales
+        const x = d3.scaleLinear()
+            .domain([d3.min(data, d => d.Credit_Score) - 20, d3.max(data, d => d.Credit_Score) + 20])
+            .range([0, width]);
+
+        const y = d3.scaleLinear()
+            .domain([0, d3.max(data, d => d.Loan_Amount) * 1.1])
+            .range([height, 0]);
+
+        // Add X axis
+        svg.append("g")
+            .attr("transform", `translate(0,${height})`)
+            .call(d3.axisBottom(x));
+
+        // Add Y axis
+        svg.append("g")
+            .call(d3.axisLeft(y));
+
+        // Add dots for each data point
+        svg.selectAll(".dot")
+            .data(data)
+            .enter()
+            .append("circle")
+            .attr("class", "dot")
+            .attr("cx", d => x(d.Credit_Score))
+            .attr("cy", d => y(d.Loan_Amount))
+            .attr("r", 5);
+
+        // X-axis label
+        svg.append("text")
+            .attr("class", "axis-label")
+            .attr("x", width / 2)
+            .attr("y", height + margin.bottom - 10)
+            .style("text-anchor", "middle")
+            .text("Credit Score");
+
+        // Y-axis label
+        svg.append("text")
+            .attr("class", "axis-label")
+            .attr("x", -height / 2)
+            .attr("y", -margin.left + 20)
+            .attr("transform", "rotate(-90)")
+            .style("text-anchor", "middle")
+            .text("Loan Amount (USD)");
+
+        // Title
+        svg.append("text")
+            .attr("x", width / 2)
+            .attr("y", -10)
+            .attr("text-anchor", "middle")
+            .style("font-size", "16px")
+            .style("font-weight", "bold")
+            .text("Credit Score vs. Loan Amount Scatter Plot");
+    }).catch(error => {
+        console.error("Error loading the CSV data: ", error);
+    });
+</script>
+
+</body>
+</html>
